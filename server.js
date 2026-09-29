@@ -323,9 +323,38 @@ wss.on('connection', async (ws, req) => {
 });
 
 // Auto-start Cloudflare Tunnel
+function findCloudflared() {
+  const fs = require('fs');
+  const candidates = [
+    path.join(os.homedir(), '.mousely', 'bin', process.platform === 'win32' ? 'cloudflared.exe' : 'cloudflared'),
+    path.join(os.homedir(), '.mousely', process.platform === 'win32' ? 'cloudflared.exe' : 'cloudflared'),
+    path.join(os.homedir(), '.local', 'bin', 'cloudflared'),
+    '/usr/local/bin/cloudflared',
+    '/opt/homebrew/bin/cloudflared',
+    'cloudflared'
+  ];
+
+  for (const p of candidates) {
+    if (p === 'cloudflared') return p;
+    if (fs.existsSync(p)) return p;
+  }
+  return 'cloudflared';
+}
+
 function startTunnel() {
-  const bin = '/home/nekono3/.local/bin/cloudflared';
-  const tunnel = spawn(bin, ['tunnel', '--url', `http://localhost:${PORT}`]);
+  const bin = findCloudflared();
+  let tunnel = null;
+
+  try {
+    tunnel = spawn(bin, ['tunnel', '--url', `http://localhost:${PORT}`]);
+  } catch (e) {
+    printLocalFallback();
+    return;
+  }
+
+  tunnel.on('error', (err) => {
+    printLocalFallback();
+  });
 
   const handleData = (data) => {
     const text = data.toString();
@@ -337,8 +366,8 @@ function startTunnel() {
       console.log('\n' + '='.repeat(54));
       console.log('  🌐 GLOBAL SECURE HUB ACTIVE');
       console.log('='.repeat(54));
-      console.log(`\n  👉 Universal Web Hub: ${publicURL}`);
-      console.log(`  📱 Scan or Open on Any PC or Phone!\n`);
+      console.log(`\n  👉 Open on ANY phone / network:`);
+      console.log(`     ${publicURL}\n`);
 
       qrcodeTerminal.generate(publicURL, { small: true }, (qr) => {
         console.log(qr);
@@ -356,8 +385,22 @@ function startTunnel() {
     }
   };
 
-  tunnel.stdout.on('data', handleData);
-  tunnel.stderr.on('data', handleData);
+  if (tunnel.stdout) tunnel.stdout.on('data', handleData);
+  if (tunnel.stderr) tunnel.stderr.on('data', handleData);
+}
+
+function printLocalFallback() {
+  if (publicURL) return;
+  console.log('\n' + '='.repeat(54));
+  console.log('  🏠 LOCAL WI-FI HUB READY');
+  console.log('='.repeat(54));
+  console.log(`\n  📱 Open on your phone (same Wi-Fi):`);
+  console.log(`     👉 ${localURL}\n`);
+
+  qrcodeTerminal.generate(localURL, { small: true }, (qr) => {
+    console.log(qr);
+    console.log('='.repeat(54) + '\n');
+  });
 }
 
 server.listen(PORT, '0.0.0.0', () => {
