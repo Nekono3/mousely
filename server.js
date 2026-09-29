@@ -71,49 +71,67 @@ async function setSystemVolume(percent) {
   return vol;
 }
 
+// Sequential async queue to prevent typing race conditions and character drops
+let typeQueue = Promise.resolve();
+function queueType(fn) {
+  typeQueue = typeQueue.then(fn).catch((err) => console.error('Type error:', err));
+  return typeQueue;
+}
+
 // Instant Typing directly into PC active window
 async function typeTextToPC(text) {
   if (!text) return;
-  if (process.platform === 'linux') {
-    const escaped = text.replace(/'/g, "'\\''");
-    const copyRes = await runCmd(`wl-copy -- '${escaped}'`);
-    if (copyRes.success) {
-      const pasteRes = await runYdotool('key 29:1 47:1 47:0 29:0'); // Ctrl+V
-      if (pasteRes.success) return;
+  return queueType(async () => {
+    if (process.platform === 'linux') {
+      const escaped = text.replace(/'/g, "'\\''");
+      const copyRes = await runCmd(`wl-copy -- '${escaped}'`);
+      if (copyRes.success) {
+        const pasteRes = await runYdotool('key 29:1 47:1 47:0 29:0'); // Ctrl+V
+        if (pasteRes.success) return;
+      }
+      await runYdotool(`type -- '${escaped}'`);
+    } else if (process.platform === 'darwin') {
+      // Escape for AppleScript string literal
+      const escaped = text.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+      const res = await runCmd(`osascript -e 'tell application "System Events" to keystroke "${escaped}"' 2>/dev/null`);
+      if (!res.success) {
+        // Fallback for special unicode / symbols via pbcopy + Cmd+V
+        const proc = spawn('pbcopy');
+        proc.stdin.write(text);
+        proc.stdin.end();
+        await new Promise((resolve) => proc.on('close', resolve));
+        await runCmd(`osascript -e 'tell application "System Events" to keystroke "v" using command down' 2>/dev/null`);
+      }
+    } else {
+      await keyboard.type(text);
     }
-    await runYdotool(`type -- '${escaped}'`);
-  } else if (process.platform === 'darwin') {
-    // Put text on macOS pasteboard and press Cmd+V (instant, 100% accurate, unicode/Cyrillic safe)
-    const proc = spawn('pbcopy');
-    proc.stdin.write(text);
-    proc.stdin.end();
-    await new Promise((resolve) => proc.on('close', resolve));
-    await runCmd(`osascript -e 'tell application "System Events" to keystroke "v" using command down' 2>/dev/null`);
-  } else {
-    await keyboard.type(text);
-  }
+  });
 }
 
 async function handleBackspace() {
-  if (process.platform === 'linux') {
-    const res = await runYdotool('key 14:1 14:0');
-    if (res.success) return;
-  } else if (process.platform === 'darwin') {
-    await runCmd(`osascript -e 'tell application "System Events" to key code 51' 2>/dev/null`);
-    return;
-  }
-  await keyboard.type(Key.Backspace);
+  return queueType(async () => {
+    if (process.platform === 'linux') {
+      const res = await runYdotool('key 14:1 14:0');
+      if (res.success) return;
+    } else if (process.platform === 'darwin') {
+      await runCmd(`osascript -e 'tell application "System Events" to key code 51' 2>/dev/null`);
+      return;
+    }
+    await keyboard.type(Key.Backspace);
+  });
 }
 
 async function handleEnter() {
-  if (process.platform === 'linux') {
-    const res = await runYdotool('key 28:1 28:0');
-    if (res.success) return;
-  } else if (process.platform === 'darwin') {
-    await runCmd(`osascript -e 'tell application "System Events" to key code 36' 2>/dev/null`);
-    return;
-  }
-  await keyboard.type(Key.Enter);
+  return queueType(async () => {
+    if (process.platform === 'linux') {
+      const res = await runYdotool('key 28:1 28:0');
+      if (res.success) return;
+    } else if (process.platform === 'darwin') {
+      await runCmd(`osascript -e 'tell application "System Events" to key code 36' 2>/dev/null`);
+      return;
+    }
+    await keyboard.type(Key.Enter);
+  });
 }
 
 // Ultra-fast mouse position tracking without blocking promises

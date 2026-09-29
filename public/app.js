@@ -552,11 +552,13 @@ volumeCapsuleTrack.addEventListener('touchend', () => {
 
 // 8. KEYBOARD MODAL
 let lastTextBuffer = '';
+let isComposing = false;
 
 btnOpenKeyboard.addEventListener('click', () => {
   keyboardOverlay.classList.add('active');
   liveTextInput.value = '';
   lastTextBuffer = '';
+  isComposing = false;
   setTimeout(() => liveTextInput.focus(), 150);
   triggerHaptic(25);
 });
@@ -570,7 +572,7 @@ closeKeyboardBackdrop.addEventListener('click', () => {
   keyboardOverlay.classList.remove('active');
 });
 
-liveTextInput.addEventListener('input', (e) => {
+function syncKeyboardBuffer() {
   const currentVal = liveTextInput.value;
 
   if (currentVal.length > lastTextBuffer.length) {
@@ -584,6 +586,21 @@ liveTextInput.addEventListener('input', (e) => {
   }
 
   lastTextBuffer = currentVal;
+}
+
+liveTextInput.addEventListener('compositionstart', () => {
+  isComposing = true;
+});
+
+liveTextInput.addEventListener('compositionend', () => {
+  isComposing = false;
+  syncKeyboardBuffer();
+});
+
+liveTextInput.addEventListener('input', () => {
+  if (!isComposing) {
+    syncKeyboardBuffer();
+  }
 });
 
 liveTextInput.addEventListener('keydown', (e) => {
@@ -613,6 +630,7 @@ langChips.forEach(chip => {
 });
 
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+let lastSentSpeechText = '';
 
 function startSpeechEngine() {
   if (!SpeechRecognition) {
@@ -630,6 +648,7 @@ function startSpeechEngine() {
     recognition.interimResults = true;
     recognition.maxAlternatives = 1;
     recognition.continuous = true;
+    lastSentSpeechText = '';
 
     recognition.onstart = () => {
       isRecognizing = true;
@@ -657,8 +676,12 @@ function startSpeechEngine() {
       }
 
       if (finalTranscript) {
-        sendAction('TYPE_TEXT', { text: finalTranscript.trim() + ' ' });
-        triggerHaptic(25);
+        const trimmed = finalTranscript.trim();
+        if (trimmed && trimmed !== lastSentSpeechText) {
+          lastSentSpeechText = trimmed;
+          sendAction('TYPE_TEXT', { text: trimmed + ' ' });
+          triggerHaptic(25);
+        }
       }
     };
 
@@ -686,10 +709,17 @@ function startSpeechEngine() {
 }
 
 function stopSpeechEngine() {
+  if (isRecognizing && transcriptText.textContent) {
+    const txt = transcriptText.textContent.trim();
+    if (txt && !txt.includes('Listening') && !txt.includes('Speak now') && !txt.includes('Tap mic') && txt !== lastSentSpeechText) {
+      sendAction('TYPE_TEXT', { text: txt + ' ' });
+    }
+  }
   isRecognizing = false;
   btnMic.classList.remove('recording');
   transcriptPreview.classList.remove('active-speech');
   transcriptText.textContent = 'Tap mic to speak...';
+  lastSentSpeechText = '';
   if (recognition) {
     try { recognition.stop(); } catch (e) {}
   }
