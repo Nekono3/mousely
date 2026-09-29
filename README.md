@@ -4,6 +4,20 @@
 
 ---
 
+## ⚡ 1-Line Instant Start
+
+### 🪟 Windows (Run in PowerShell):
+```powershell
+irm https://raw.githubusercontent.com/Nekono3/mousely/main/install.ps1 | iex
+```
+
+### 🍎 macOS & 🐧 Linux (Run in Terminal):
+```bash
+curl -fsSL https://raw.githubusercontent.com/Nekono3/mousely/main/install.sh | bash
+```
+
+---
+
 ## ✨ Features
 
 - 🌌 **Futuristic OLED Trackpad:** Radial glowing touch dot matrix on Canvas (60 FPS) with haptic feedback.
@@ -17,44 +31,20 @@
 
 ---
 
-## 🚀 Quick Start
+## 🖥️ Manual Quick Start
 
-### 1. Prerequisites
-- [Node.js](https://nodejs.org) (v18 or higher)
-
-### 2. Installation
 ```bash
-# Clone repository
+# 1. Clone repository
 git clone https://github.com/Nekono3/mousely.git
 cd mousely
 
-# Install dependencies
+# 2. Install dependencies
 npm install
-```
 
-### 3. Run Server
-```bash
+# 3. Run Server
 npm start
-# or: node server.js
+# (or double-click start-windows.bat on Windows)
 ```
-
-### 4. Connect Phone
-1. Open the URL printed in the terminal (Local IP or Public Cloudflare Tunnel URL) on your computer.
-2. Click **"💻 I'm on a Computer"** to display the pairing QR code and 4-digit PIN.
-3. On your phone, scan the QR code with your camera (or open the website on your phone and enter the PIN).
-4. Enjoy wireless remote control!
-
----
-
-## 🖥️ Cross-Platform Support
-
-| Platform | Mouse & Keyboard Injection | Volume Control | Status |
-| :--- | :--- | :--- | :--- |
-| **Linux (Wayland / Hyprland)** | `ydotool` / `/dev/uinput` | `wpctl` / `pactl` | ✅ Fully Supported |
-| **Linux (X11)** | `@nut-tree-fork/nut-js` | `pactl` / `amixer` | ✅ Fully Supported |
-| **Windows 10 / 11** | `@nut-tree-fork/nut-js` (Native API) | Native | ✅ Fully Supported |
-| **macOS (Apple Silicon & Intel)** | `@nut-tree-fork/nut-js` (CoreGraphics) | Native | ✅ Fully Supported |
-| **Mobile (iOS Safari & Android Chrome)** | Web Touch / Web Speech / WebSockets | N/A | ✅ No App Install Needed |
 
 ---
 
