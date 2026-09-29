@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#05070b">
+  <title>Mousely - Universal Remote & Host</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- ========================================================
+       VIEW 1: DEVICE SELECTION LANDING (PC vs PHONE)
+       ======================================================== -->
+  <div id="landingView" class="landing-view">
+    <div class="landing-card">
+      <div class="landing-logo">
+        <div class="logo-orb"></div>
+        <h1>Mousely</h1>
+      </div>
+      <p class="landing-subtitle">Turn your phone into a futuristic presentation remote & trackpad.</p>
+
+      <div class="selection-grid">
+        <!-- Option 1: Computer / PC -->
+        <button id="btnSelectPC" class="device-card">
+          <div class="device-icon-wrap">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+              <line x1="8" y1="21" x2="16" y2="21"></line>
+              <line x1="12" y1="17" x2="12" y2="21"></line>
+            </svg>
+          </div>
+          <div class="device-info">
+            <span class="device-title">I'm on a Computer</span>
+            <span class="device-desc">Display QR Code for your phone to scan</span>
+          </div>
+        </button>
+
+        <!-- Option 2: Smartphone / Remote -->
+        <button id="btnSelectPhone" class="device-card primary">
+          <div class="device-icon-wrap">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+              <line x1="12" y1="18" x2="12.01" y2="18"></line>
+            </svg>
+          </div>
+          <div class="device-info">
+            <span class="device-title">I'm on a Phone</span>
+            <span class="device-desc">Open the remote control touch surface</span>
+          </div>
+        </button>
+      </div>
+
+      <div class="room-pin-entry">
+        <span>Or connect with 4-digit PIN:</span>
+        <div class="pin-row">
+          <input type="tel" id="manualPinInput" placeholder="PIN" maxlength="4" pattern="[0-9]*" inputmode="numeric">
+          <button id="btnJoinPin">Connect</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       VIEW 2: PC HOST DASHBOARD (SHOWS QR CODE & PAIRED STATUS)
+       ======================================================== -->
+  <div id="pcHostView" class="pc-host-view" style="display:none;">
+    <div class="host-container">
+      <header class="host-header">
+        <div class="brand-row">
+          <div class="logo-orb-sm"></div>
+          <h2>Mousely Companion</h2>
+        </div>
+        <button id="btnSwitchDevice" class="minimal-pill-btn">Switch Role</button>
+      </header>
+
+      <div class="host-grid">
+        <!-- QR Code Display -->
+        <div class="host-qr-card">
+          <div class="qr-glow-frame">
+            <img id="hostQrImg" src="" alt="Scan QR Code to Connect">
+          </div>
+          <div class="room-badge">
+            <span class="room-label">PIN CODE</span>
+            <strong id="hostRoomPin" class="pin-digits">----</strong>
+          </div>
+          <p class="scan-hint">Scan with phone camera or enter 4-digit PIN</p>
+          <button id="btnCopyLink" class="copy-link-btn">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+            <span id="copyLinkText">Copy Direct Link</span>
+          </button>
+        </div>
+
+        <!-- Telemetry & Status Card -->
+        <div class="host-info-card">
+          <div id="hostStatusCard" class="status-indicator-card">
+            <span id="hostStatusPulse" class="pulse-emerald"></span>
+            <div>
+              <h3 id="hostStatusTitle">Listening for Remote...</h3>
+              <p id="hostRemotesCount">0 Phones Paired</p>
+            </div>
+          </div>
+
+          <div class="host-log-feed">
+            <div class="log-feed-title">Live Remote Commands</div>
+            <div id="hostLogsContainer" class="logs-container">
+              <div class="log-row ready"><span>System ready. Waiting for phone gestures...</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       VIEW 3: MOBILE REMOTE CONTROLLER (FUTURISTIC DOT MATRIX)
+       ======================================================== -->
+  <div id="remoteControllerView" class="remote-view" style="display:none;">
+    <!-- TOP STATUS BAR -->
+    <header class="top-status-bar">
+      <button id="btnOpenSettings" class="status-icon-btn" aria-label="Settings">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
+      </button>
+
+      <div class="status-center">
+        <span class="status-dot"></span>
+        <span id="connectionText" class="status-text">Connected</span>
+      </div>
+
+      <button id="btnExit" class="status-icon-btn exit" title="Exit Presentation (Escape)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </header>
+
+    <!-- MAIN TRACKPAD & CONTROLS -->
+    <main class="main-container">
+      <div class="trackpad-wrapper">
+        <canvas id="dotCanvas" class="dot-canvas"></canvas>
+        <div class="click-zones-row">
+          <button id="btnLeftClick" class="click-zone-btn left"><span>LEFT</span></button>
+          <button id="btnRightClick" class="click-zone-btn right"><span>RIGHT</span></button>
+        </div>
+      </div>
+
+      <div class="bottom-controls-group">
+        <!-- VOICE-TO-TEXT BAR -->
+        <div class="voice-quick-bar">
+          <div class="lang-chips">
+            <button class="lang-chip active" data-lang="en-US">EN</button>
+            <button class="lang-chip" data-lang="ru-RU">RU</button>
+          </div>
+
+          <button id="btnMic" class="mic-glow-btn" aria-label="Microphone">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3">
+              <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"></path>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+              <line x1="12" y1="19" x2="12" y2="22"></line>
+            </svg>
+          </button>
+
+          <div class="transcript-preview" id="transcriptPreview">
+            <span id="transcriptText">Tap mic to speak...</span>
+          </div>
+        </div>
+
+        <!-- PRESENTER CONTROLS -->
+        <footer class="presenter-controls-section">
+          <div class="section-label">PRESENTER CONTROLS</div>
+          <div class="controls-row">
+            <button id="btnPrevSlide" class="nav-chevron-btn prev" aria-label="Previous Slide">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8">
+                <polyline points="15 18 9 12 15 6"></polyline>
+              </svg>
+            </button>
+
+            <div class="center-controls">
+              <button id="btnVolToggle" class="center-round-btn" title="Volume Control">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                  <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                </svg>
+              </button>
+
+              <button id="btnPresentStart" class="center-round-btn primary-present" title="Start Presentation (F5)">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+                  <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                </svg>
+              </button>
+
+              <button id="btnOpenKeyboard" class="center-round-btn" title="Keyboard">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                  <rect x="2" y="4" width="20" height="16" rx="2" ry="2"></rect>
+                  <line x1="6" y1="8" x2="6" y2="8"></line>
+                  <line x1="10" y1="8" x2="10" y2="8"></line>
+                  <line x1="14" y1="8" x2="14" y2="8"></line>
+                  <line x1="18" y1="8" x2="18" y2="8"></line>
+                  <line x1="6" y1="12" x2="6" y2="12"></line>
+                  <line x1="10" y1="12" x2="10" y2="12"></line>
+                  <line x1="14" y1="12" x2="14" y2="12"></line>
+                  <line x1="18" y1="12" x2="18" y2="12"></line>
+                  <line x1="7" y1="16" x2="17" y2="16"></line>
+                </svg>
+              </button>
+            </div>
+
+            <button id="btnNextSlide" class="nav-chevron-btn next" aria-label="Next Slide">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8">
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+            </button>
+          </div>
+        </footer>
+      </div>
+    </main>
+  </div>
+
+  <!-- KEYBOARD MODAL -->
+  <div id="keyboardOverlay" class="futuristic-modal">
+    <div class="modal-backdrop" id="closeKeyboardBackdrop"></div>
+    <div class="modal-panel">
+      <div class="panel-header">
+        <span class="panel-title">Keyboard</span>
+        <button id="btnCloseKeyboard" class="panel-close-btn" aria-label="Close">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <div class="input-glow-wrapper">
+        <textarea id="liveTextInput" class="futuristic-input" rows="2" placeholder="" autofocus></textarea>
+      </div>
+      <div class="keyboard-hint">
+        <span>Type or hold backspace on your phone to edit PC text</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- VOLUME MODAL -->
+  <div id="volumeOverlay" class="futuristic-modal">
+    <div class="modal-backdrop" id="closeVolumeBackdrop"></div>
+    <div class="modal-panel volume-panel">
+      <div class="panel-header">
+        <span class="panel-title">Volume</span>
+        <span id="volumeModalVal" class="vol-highlight">70%</span>
+        <button id="btnCloseVolume" class="panel-close-btn" aria-label="Close">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <div class="volume-capsule-container">
+        <div id="volumeCapsuleTrack" class="volume-capsule-track">
+          <div id="volumeCapsuleFill" class="volume-capsule-fill" style="height: 70%;"></div>
+          <div class="volume-capsule-labels">
+            <span>100</span>
+            <span id="volumeCenterIcon">🔊</span>
+            <span>0</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SETTINGS MODAL -->
+  <div id="settingsModal" class="futuristic-modal">
+    <div class="modal-backdrop" id="closeSettingsBackdrop"></div>
+    <div class="modal-panel">
+      <div class="panel-header">
+        <span class="panel-title">Settings</span>
+        <button id="btnCloseSettings" class="panel-close-btn" aria-label="Close">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <div class="setting-row">
+        <div class="setting-info">
+          <label>Pointer Sensitivity</label>
+          <span class="setting-sub">Speed multiplier</span>
+        </div>
+        <div class="setting-action">
+          <input type="range" id="sensitivitySlider" min="0.5" max="3.0" step="0.1" value="1.5">
+          <span id="sensitivityVal" class="val-tag">1.5x</span>
+        </div>
+      </div>
+
+      <div class="setting-row">
+        <div class="setting-info">
+          <label>Reverse 2-Finger Scroll</label>
+          <span class="setting-sub">Natural scrolling</span>
+        </div>
+        <div class="setting-action">
+          <input type="checkbox" id="invertScrollCheckbox" checked class="futuristic-switch">
+        </div>
+      </div>
+
+      <div class="setting-row">
+        <div class="setting-info">
+          <label>Haptic Vibration</label>
+          <span class="setting-sub">Tactile feedback</span>
+        </div>
+        <div class="setting-action">
+          <input type="checkbox" id="hapticsCheckbox" checked class="futuristic-switch">
+        </div>
+      </div>
+
+      <div class="panel-footer">
+        <button id="btnSwitchDeviceFromSettings" class="minimal-pill-btn" style="margin: 6px auto;">Switch Role / Device</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

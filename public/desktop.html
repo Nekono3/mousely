@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mousely Desktop Companion</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body {
+      overflow-y: auto;
+      padding: 30px;
+      align-items: center;
+      justify-content: center;
+    }
+    .desktop-container {
+      max-width: 860px;
+      width: 100%;
+      margin: 0 auto;
+    }
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-top: 24px;
+    }
+    @media (max-width: 768px) {
+      .dashboard-grid { grid-template-columns: 1fr; }
+    }
+    .qr-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: 24px;
+      padding: 30px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+    .qr-frame {
+      background: #ffffff;
+      padding: 16px;
+      border-radius: 18px;
+      box-shadow: 0 10px 30px rgba(0, 210, 255, 0.15);
+      margin: 20px 0;
+      width: 220px;
+      height: 220px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .qr-img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+    .url-chip {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      padding: 10px 18px;
+      border-radius: 12px;
+      font-family: monospace;
+      font-size: 0.95rem;
+      color: var(--accent-cyan);
+      word-break: break-all;
+      max-width: 100%;
+    }
+    .logs-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: 24px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+    }
+    .logs-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .logs-feed {
+      flex: 1;
+      min-height: 240px;
+      max-height: 320px;
+      background: var(--bg-primary);
+      border-radius: 14px;
+      padding: 12px;
+      overflow-y: auto;
+      font-family: monospace;
+      font-size: 0.8rem;
+      display: flex;
+      flex-direction: column-reverse;
+      gap: 6px;
+      border: 1px solid var(--border-color);
+    }
+    .log-item {
+      padding: 6px 10px;
+      border-radius: 6px;
+      background: var(--bg-card);
+      display: flex;
+      justify-content: space-between;
+      color: var(--text-secondary);
+    }
+    .log-item .tag {
+      color: var(--accent-green);
+      font-weight: bold;
+    }
+    .instructions-card {
+      margin-top: 24px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 20px;
+    }
+    .badge-secure {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(0, 223, 137, 0.15);
+      color: var(--accent-green);
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="desktop-container">
+    <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+      <div class="brand">
+        <span class="brand-dot"></span>
+        <h1 class="brand-title" style="font-size: 1.8rem;">Mousely Desktop Companion</h1>
+      </div>
+      <div id="desktopStatusBadge" class="status-badge connected">
+        <span class="status-indicator"></span>
+        <span id="clientCount">0 Mobile Remote(s) Connected</span>
+      </div>
+    </header>
+
+    <div class="dashboard-grid">
+      <!-- QR Code Pairing Card -->
+      <div class="qr-card">
+        <div class="badge-secure">🔒 Global Secure HTTPS Active</div>
+        <h2>Scan to Connect</h2>
+        <p style="color: var(--text-secondary); font-size: 0.88rem; margin-top: 4px;">
+          Works on any network (4G/5G/Wi-Fi)
+        </p>
+        <div class="qr-frame">
+          <img id="qrImage" class="qr-img" src="" alt="Loading QR...">
+        </div>
+        <div id="controllerUrl" class="url-chip">Generating secure link...</div>
+      </div>
+
+      <!-- Live Event Feed Card -->
+      <div class="logs-card">
+        <div class="logs-header">
+          <h3>Live Command Feed</h3>
+          <span style="font-size: 0.75rem; color: var(--text-muted);">Real-time</span>
+        </div>
+        <div id="logsFeed" class="logs-feed">
+          <div class="log-item">
+            <span>Server listening for mobile commands...</span>
+            <span class="tag">READY</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Instructions -->
+    <div class="instructions-card">
+      <h3 style="font-size: 1.1rem; margin-bottom: 6px;">How to Connect</h3>
+      <ol style="margin-top: 12px; padding-left: 20px; color: var(--text-secondary); line-height: 1.6; font-size: 0.9rem;">
+        <li>Point your phone camera at the QR code above (or type the link into mobile Safari / Chrome).</li>
+        <li>No app install needed — the remote controller loads instantly!</li>
+        <li>Switch between <strong>Slides</strong>, <strong>Trackpad</strong>, and <strong>Air Mouse</strong> from your phone.</li>
+      </ol>
+    </div>
+  </div>
+
+  <script>
+    const qrImg = document.getElementById('qrImage');
+    const controllerUrl = document.getElementById('controllerUrl');
+    const clientCount = document.getElementById('clientCount');
+    const logsFeed = document.getElementById('logsFeed');
+
+    async function loadInfo() {
+      try {
+        const res = await fetch('/api/info');
+        const data = await res.json();
+        qrImg.src = data.qrDataURL;
+        controllerUrl.textContent = data.activeURL;
+      } catch (err) {
+        console.error('Failed to load server info', err);
+      }
+    }
+    loadInfo();
+
+    // WebSocket connection for live telemetry
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const ws = new WebSocket(`${protocol}//${window.location.host}?client=desktop`);
+
+    ws.onmessage = (event) => {
+      try {
+        const msg = JSON.parse(event.data);
+
+        if (msg.type === 'TUNNEL_READY') {
+          loadInfo();
+        }
+
+        if (msg.type === 'STATS_UPDATE') {
+          clientCount.textContent = `${msg.connectedClients} Mobile Remote(s) Connected`;
+        }
+
+        if (msg.type === 'LOG_EVENT') {
+          const item = document.createElement('div');
+          item.className = 'log-item';
+          const time = new Date(msg.timestamp).toLocaleTimeString();
+          item.innerHTML = `<span>[${time}] ${msg.action}</span><span class="tag">RECEIVED</span>`;
+          logsFeed.prepend(item);
+        }
+      } catch (err) {}
+    };
+  </script>
+</body>
+</html>
