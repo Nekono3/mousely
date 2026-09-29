@@ -48,6 +48,12 @@ async function getSystemVolume() {
       const match = pa.output.match(/(\d+)%/);
       if (match) return parseInt(match[1], 10);
     }
+  } else if (process.platform === 'darwin') {
+    const res = await runCmd("osascript -e 'output volume of (get volume settings)' 2>/dev/null");
+    if (res.success && res.output) {
+      const v = parseInt(res.output, 10);
+      if (!isNaN(v)) return v;
+    }
   }
   return 70;
 }
@@ -59,6 +65,8 @@ async function setSystemVolume(percent) {
     const fraction = (vol / 100).toFixed(2);
     await runCmd(`wpctl set-volume @DEFAULT_AUDIO_SINK@ ${fraction}`);
     await runCmd(`pactl set-sink-volume @DEFAULT_SINK@ ${vol}%`);
+  } else if (process.platform === 'darwin') {
+    await runCmd(`osascript -e 'set volume output volume ${vol}' 2>/dev/null`);
   }
   return vol;
 }
@@ -74,6 +82,13 @@ async function typeTextToPC(text) {
       if (pasteRes.success) return;
     }
     await runYdotool(`type -- '${escaped}'`);
+  } else if (process.platform === 'darwin') {
+    // Put text on macOS pasteboard and press Cmd+V (instant, 100% accurate, unicode/Cyrillic safe)
+    const proc = spawn('pbcopy');
+    proc.stdin.write(text);
+    proc.stdin.end();
+    await new Promise((resolve) => proc.on('close', resolve));
+    await runCmd(`osascript -e 'tell application "System Events" to keystroke "v" using command down' 2>/dev/null`);
   } else {
     await keyboard.type(text);
   }
@@ -83,6 +98,9 @@ async function handleBackspace() {
   if (process.platform === 'linux') {
     const res = await runYdotool('key 14:1 14:0');
     if (res.success) return;
+  } else if (process.platform === 'darwin') {
+    await runCmd(`osascript -e 'tell application "System Events" to key code 51' 2>/dev/null`);
+    return;
   }
   await keyboard.type(Key.Backspace);
 }
@@ -91,8 +109,25 @@ async function handleEnter() {
   if (process.platform === 'linux') {
     const res = await runYdotool('key 28:1 28:0');
     if (res.success) return;
+  } else if (process.platform === 'darwin') {
+    await runCmd(`osascript -e 'tell application "System Events" to key code 36' 2>/dev/null`);
+    return;
   }
   await keyboard.type(Key.Enter);
+}
+
+// Ultra-fast mouse position tracking without blocking promises
+let cachedMousePos = null;
+
+async function getMousePos() {
+  if (!cachedMousePos) {
+    try {
+      cachedMousePos = await mouse.getPosition();
+    } catch (e) {
+      cachedMousePos = { x: 500, y: 500 };
+    }
+  }
+  return cachedMousePos;
 }
 
 // Room & Multi-Device Manager
@@ -159,26 +194,43 @@ app.get('/api/qr', async (req, res) => {
 // OS Input Processing
 async function handleAction(data, ws) {
   const isLinuxWayland = process.platform === 'linux';
+  const isDarwin = process.platform === 'darwin';
 
   try {
     switch (data.action) {
       case 'SLIDE_NEXT':
         if (isLinuxWayland && (await runYdotool('key 106:1 106:0')).success) break;
+        if (isDarwin) {
+          await runCmd(`osascript -e 'tell application "System Events" to key code 124' 2>/dev/null`);
+          break;
+        }
         await keyboard.type(Key.Right);
         break;
 
       case 'SLIDE_PREV':
         if (isLinuxWayland && (await runYdotool('key 105:1 105:0')).success) break;
+        if (isDarwin) {
+          await runCmd(`osascript -e 'tell application "System Events" to key code 123' 2>/dev/null`);
+          break;
+        }
         await keyboard.type(Key.Left);
         break;
 
       case 'SLIDE_START':
         if (isLinuxWayland && (await runYdotool('key 63:1 63:0')).success) break; // F5
+        if (isDarwin) {
+          await runCmd(`osascript -e 'tell application "System Events" to key code 96' 2>/dev/null`); // F5
+          break;
+        }
         await keyboard.type(Key.F5);
         break;
 
       case 'SLIDE_EXIT':
         if (isLinuxWayland && (await runYdotool('key 1:1 1:0')).success) break; // Esc
+        if (isDarwin) {
+          await runCmd(`osascript -e 'tell application "System Events" to key code 53' 2>/dev/null`); // Esc
+          break;
+        }
         await keyboard.type(Key.Escape);
         break;
 
@@ -187,12 +239,16 @@ async function handleAction(data, ws) {
         const dy = Math.round(data.dy || 0);
         if (isLinuxWayland && (await runYdotool(`mousemove -- ${dx} ${dy}`)).success) break;
 
-        const current = await mouse.getPosition();
-        await mouse.setPosition(new Point(current.x + dx, current.y + dy));
+        const pos = await getMousePos();
+        pos.x = Math.max(0, pos.x + dx);
+        pos.y = Math.max(0, pos.y + dy);
+
+        mouse.setPosition(new Point(pos.x, pos.y)).catch(() => {});
         break;
       }
 
       case 'MOUSE_CLICK': {
+        cachedMousePos = null; // Re-sync actual OS position on clicks
         if (data.button === 'right') {
           if (isLinuxWayland && (await runYdotool('click 0xC1')).success) break;
           await mouse.click(Button.RIGHT);
